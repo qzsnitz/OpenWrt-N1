@@ -29,8 +29,6 @@ jobs:
         include:
           - flippy_name: 5.4.158
             release_name: N1-jcnf-mini-66+o.img
-          - flippy_name: 66+
-            release_name: N1-jcnf-mini-66+.img
 
     env:
       FLIPPY_NAME: ${{ matrix.flippy_name }}   
@@ -49,7 +47,11 @@ jobs:
         sudo mkdir -p /opt
         sudo chmod  -R 777 /opt
         # cp -r ${FLIPPY_NAME}/opt/* /opt
-                
+        cd /opt
+        svn co https://github.com/breakings/OpenWrt/trunk/opt/kernel/$flippy_name
+        sudo mv $flippy_name kernel
+        
+        
     - name: Download
       run: |
         cd /opt
