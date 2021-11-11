@@ -50,7 +50,9 @@ jobs:
         cd /opt
         svn co https://github.com/breakings/OpenWrt/trunk/opt/kernel/$flippy_name
         sudo mv $flippy_name kernel
-        
+        cd kernel
+        sudo rm -rf dtb-allwinner-*
+        sudo rm -rf dtb-rockchip-*
         
     - name: Download
       run: |
