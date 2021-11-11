@@ -1,0 +1,170 @@
+name: N1 mini Version
+
+on:
+  #repository_dispatch:
+  #  types: [mini]
+  workflow_dispatch:
+
+env:
+  REPO_URL: https://github.com/coolsnowwolf/lede
+  REPO_BRANCH: master
+  SUB_VERSION: mini
+  CONFIG_FILE: mini.config
+  DIY_SH: diy.sh
+  TZ: Asia/Shanghai
+  RELEASE: true
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    if: github.event.repository.owner.id == github.event.sender.id
+
+    steps:
+    - name: Check CPU
+      id: checkcpu
+      run: |      
+        cpu_model=`cat /proc/cpuinfo  |grep 'model name' |gawk -F : '{print $2}' | uniq -c  | sed 's/^ \+[0-9]\+ //g'`
+        echo "cpu model: $cpu_model "
+        e5CPU="E5"
+        if [[ $cpu_model =~ $e5CPU ]]
+        then
+            echo "::set-output name=status::cancel"
+        fi
+        
+    - name: Cancelling
+      if: steps.checkcpu.outputs.status == 'cancel'
+      uses: andymckay/cancel-action@0.2
+      
+    - name: Checkout
+      uses: actions/checkout@main
+
+    - name: Initialization Environment
+      env:
+        DEBIAN_FRONTEND: noninteractive
+      run: |
+        sudo rm -rf /etc/apt/sources.list.d/* /usr/share/dotnet /usr/local/lib/android /opt/ghc
+        sudo -E apt-get -qq update
+        sudo -E apt-get -qq install $(curl -fsSL git.io/depends-ubuntu-2004) tree
+        sudo -E apt-get -qq autoremove --purge
+        sudo -E apt-get -qq clean
+        sudo timedatectl set-timezone "$TZ"
+        
+        sudo mkdir -p /workdir
+        sudo chown $USER:$GROUPS /workdir
+        
+        sudo mkdir -p /upload
+        sudo chown $USER:$GROUPS /upload
+        
+        cd /upload
+        echo "UPLOAD=$PWD" >> $GITHUB_ENV
+        
+        echo "tag_name=$(date +%Y%m%d)" >> $GITHUB_ENV
+        echo "DATE=$(date "+%Y-%m-%d %H:%M:%S")"  >> $GITHUB_ENV
+        
+    - name: Clone source code
+      working-directory: /workdir
+      run: |
+        df -hT $PWD
+        git clone $REPO_URL -b $REPO_BRANCH openwrt
+        ln -sf /workdir/openwrt $GITHUB_WORKSPACE/openwrt 
+        cd openwrt
+        
+    - name: Update & Install Feeds
+      run: |
+        cd openwrt
+        ./scripts/feeds update -a
+        ./scripts/feeds install -a
+      
+    - name: Load Custom Configuration
+      run: |
+        [ -e files ] && mv files openwrt/files
+        chmod +x $DIY_SH
+        cd openwrt
+        $GITHUB_WORKSPACE/$DIY_SH        
+     
+    - name: Compile Firmware
+      id: compile
+      run: |
+        [ -e $CONFIG_FILE ] && mv $CONFIG_FILE openwrt/.config
+        cd openwrt
+        make defconfig
+        make download -j8
+        find dl -size -1024c -exec ls -l {} \;
+        find dl -size -1024c -exec rm -f {} \;
+        echo -e "$(nproc) thread compile"
+        
+        make -j$(nproc) || make -j1 || make -j1 V=s
+        
+        cp .config ${UPLOAD}/build.config
+        cd bin/targets/*/*
+        cp openwrt-armvirt-64-default-rootfs.tar.gz  ${UPLOAD}/openwrt-armvirt-64-default-rootfs-${SUB_VERSION}.tar.gz
+        count=` find -name '*.xz' | wc -l `
+        if [  $count -gt 0 ] ; then
+            cp -r *.xz ${UPLOAD}/
+        fi
+        echo "::set-output name=status::success"    
+        
+    - name: Create Firmware Release
+      if: steps.compile.outputs.status == 'success' && env.RELEASE == 'true' && !cancelled()
+      uses: ncipollo/release-action@v1
+      with:
+        name: ${{ env.DATE }} 🚀 / N1-Openwrt | 编译
+        allowUpdates: true
+        tag: ${{ env.tag_name }}
+        commit: master
+        token: ${{ secrets.RELEASES_TOKEN  }}
+        artifacts:  ${{ env.UPLOAD }}/*
+        
+    - name: Package OpenWrt with flippy script
+      uses: mingxiaoyu/package-flippy-openwrt@main
+      id: package
+      with:
+        types: l1pro,s905d,beikeyun,s905x3
+        out: ${{ env.UPLOAD }}
+        sub-name: ${{ env.SUB_VERSION}}
+        whoami: mingxiaoyu
+        openwrt-path: openwrt/bin/targets/*/*
+
+    - name: Package OpenWrt with flippy script(+)     
+      uses: mingxiaoyu/package-flippy-openwrt@main
+      with:
+        types: l1pro,s905d,beikeyun,s905x3
+        kernel-version: latest+
+        out: ${{ env.UPLOAD }}
+        sub-name: ${{ env.SUB_VERSION}}
+        openwrt-path: openwrt/bin/targets/*/*
+   
+    - name: Create release
+      if: steps.package.outputs.status == 'true' && env.RELEASE == 'true' && !cancelled()
+      uses: ncipollo/release-action@v1
+      with:
+        name: ${{ env.DATE }} 🚀 / N1-Openwrt | 编译
+        allowUpdates: true
+        tag: ${{ env.tag_name }}
+        commit: master
+        token: ${{ secrets.RELEASES_TOKEN  }}
+        body: |
+          默认IP：192.168.31.254 默认密码： password
+          全新刷入emmc方法：
+             1. 固件刷入U盘。
+             2. cd root
+             3. ./install-to-emmc.sh
+             4. 拔掉U盘，断电重启。
+             
+          在线升级方法：
+             1. 上传 img 到/mnt/mmcblk2p4
+             2. cd /mnt/mmcblk2p4
+             3. 升级脚本下载 update-amlogic-openwrt.sh
+             4. chmod +x update-amlogic-openwrt.sh
+             5. gzip -d  *.img.gz
+             6. ./update-amlogic-openwrt.sh xxxx.img
+        artifacts:  ${{ env.UPLOAD }}/*
+        
+    - name: Remove old Releases
+      uses: dev-drprasad/delete-older-releases@v0.1.0
+      if: env.RELEASE == 'true' && !cancelled()
+      with:
+        keep_latest: 3
+        delete_tags: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.RELEASES_TOKEN }}
