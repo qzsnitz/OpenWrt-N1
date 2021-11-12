@@ -27,7 +27,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - flippy_name: 5.4.158
+          - flippy_name: 5.15.1
             release_name: N1-jcnf-mini-66+o.img
 
     env:
