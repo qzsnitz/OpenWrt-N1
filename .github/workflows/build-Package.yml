@@ -48,8 +48,8 @@ jobs:
         sudo chmod  -R 777 /opt
         # cp -r ${FLIPPY_NAME}/opt/* /opt
         cd /opt
-        svn co https://github.com/breakings/OpenWrt/trunk/opt/kernel/$flippy_name
-        sudo mv $flippy_name kernel
+        svn co https://github.com/breakings/OpenWrt/trunk/opt/kernel/$FLIPPY_NAME
+        sudo mv $FLIPPY_NAME kernel
         cd kernel
         sudo rm -rf dtb-allwinner-*
         sudo rm -rf dtb-rockchip-*
