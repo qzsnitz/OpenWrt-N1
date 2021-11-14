@@ -109,6 +109,7 @@ jobs:
              5. chmod +x openwrt-update-amlogic
              6. ./openwrt-update-amlogic后，选择y是保留配置升级，选N相当于重装。
              7.升级完成后系统会自动重启，稍安勿躁。
+             
           ${{ env.useVersionInfo }}
 
     - name: Delete workflow runs
