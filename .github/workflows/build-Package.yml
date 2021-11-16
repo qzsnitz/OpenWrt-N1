@@ -91,7 +91,7 @@ jobs:
       with:
         name: R${{ env.DATE }} 🚀 N1 Openwrt-img | 编译
         allowUpdates: true
-        tag: R${{ env.DATE }} N1 Openwrt-img
+#        tag: R${{ env.DATE }} N1 Openwrt-img
         commit: main
         #token: ${{ secrets.RELEASES_TOKEN }}
         artifacts: ${{ env.PACKAGED_OUTPUTPATH }}/*
