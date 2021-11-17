@@ -78,12 +78,10 @@ jobs:
         KERNEL_AUTO_LATEST: true
         GZIP_IMGS: .gz
 
-    - name: Generate release tag
-      id: tag
-      if: env.PACKAGED_STATUS == 'success' && env.UPLOAD_FIRMWARE == 'true' && !cancelled()
+    - name: copy update files
       run: |
-        echo "::set-output name=release_tag::$(date +"%Y.%m.%d-%H%M")"
-        echo "::set-output name=status::success"
+        cd /opt/openwrt_packit
+        sudo cp files/openwrt-update-amlogic output/openwrt-update-amlogic
 
     - name: Upload artifact to Actions
       uses: kittaakos/upload-artifact-as-is@master
@@ -116,9 +114,7 @@ jobs:
              5. chmod +x openwrt-update-amlogic
              6. ./openwrt-update-amlogic后，选择y是保留配置升级，选N相当于重装。
              7.升级完成后系统会自动重启，稍安勿躁。
-             
-          ${{ env.useVersionInfo }}
-
+           
     - name: Delete workflow runs
       uses: GitRML/delete-workflow-runs@main
       with:
