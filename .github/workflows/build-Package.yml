@@ -101,20 +101,22 @@ jobs:
         #token: ${{ secrets.RELEASES_TOKEN }}
         artifacts: ${{ env.PACKAGED_OUTPUTPATH }}/*
         body: |
-          ## 以下为N1的最新固件（每日上午7时自动编译打包最新固件）
+          ## 以下为N1和HK1的最新固件（每日上午7时自动编译打包最新固件）
           默认IP：192.168.31.254 默认密码： password
+          Openwrt🚀(注:此版本为jcnf个人的精简版。+o版内核更稳定)
           全新安装方法：
-             1. cd root
-             2. ./install-to-emmc.sh
+             1.1. cd root
+             1.2. ./install-to-emmc.sh
           在线升级方法：
-             1. cd /mnt/mmcblk2p4
-             2. wget 升级脚本链接,鼠标右击openwrt-update-amlogic 文件获取链接地址
-             3. wget img.gz后缀名的固件链接,鼠标右击后缀.img.gz文件获取链接地址
-             4. gzip -d 解压缩上一步下载的固件全名
-             5. chmod +x openwrt-update-amlogic
-             6. ./openwrt-update-amlogic后，选择y是保留配置升级，选N相当于重装。
-             7.升级完成后系统会自动重启，稍安勿躁。
-           
+             2.1. cd /mnt/mmcblk2p4
+             2.2. wget 升级脚本链接,鼠标右击openwrt-update-amlogic 文件获取链接地址
+             2.3. wget img.gz后缀名的固件链接,鼠标右击后缀.img.gz文件获取链接地址
+             2.4. gzip -d 解压缩上一步下载的固件全名
+             2.5. chmod +x openwrt-update-amlogic
+             2.6. ./openwrt-update-amlogic后，选择y是保留配置升级，选N相当于重装。
+             2.7.升级完成后系统会自动重启，稍安勿躁。
+             
+             
     - name: Delete workflow runs
       uses: GitRML/delete-workflow-runs@main
       with:
